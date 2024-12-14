@@ -1,0 +1,10 @@
+POST http://localhost:8090/events
+Content-Type: application/json
+
+{
+    "name": "Test Event",
+    "description": "Create a dummy event",
+    "location": "Bengaluru",
+    "dateTime": "2024-12-12T12:12:00Z",
+    "userID": 25
+}
