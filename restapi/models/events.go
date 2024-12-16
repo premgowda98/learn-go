@@ -11,10 +11,10 @@ type Event struct {
 	Description string
 	Location    string
 	DateTime    time.Time
-	UserID      int
+	UserID      int64
 }
 
-func (e Event) Save() error {
+func (e *Event) Save() error {
 	query := `INSERT INTO events (name, description, location, dateTime, userID)
 	VALUES (?,?,?,?,?)
 	`
@@ -38,7 +38,7 @@ func (e Event) Save() error {
 	return err
 }
 
-func (e Event) Update() error{
+func (e Event) Update() error {
 	query := `
 	UPDATE events
 	SET name = ?, description = ?, location = ?, dateTime = ?
@@ -103,8 +103,7 @@ func GetAllEventByID(id int64) (*Event, error) {
 	return &event, nil
 }
 
-
-func DeleteEventByID(id int64) error{
+func DeleteEventByID(id int64) error {
 	query := `DELETE FROM events WHERE id = ?`
 
 	sql_smt, err := db.DB.Prepare(query)
