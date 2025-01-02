@@ -1,0 +1,27 @@
+GET http://localhost:8000/
+
+### Author
+GET http://localhost:8000/author/2
+
+### Author Create
+POST http://localhost:8000/author
+Content-Type: application/json
+
+{
+    "name": "Abhi",
+    "age": 26,
+    "address": "Nagarbhavi"
+}s
+
+### Book
+GET http://localhost:8000/author/1/book/1
+
+### Book Create
+POST http://localhost:8000/author/1/book
+Content-Type: application/json
+
+{
+    "name": "ThinkSchhol2",
+    "isbn": "BSHNJK90890",
+    "ReleaseDate": "2006-01-02T15:04:05Z07:00"
+}
