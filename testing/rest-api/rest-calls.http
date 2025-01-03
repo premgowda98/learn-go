@@ -1,0 +1,13 @@
+### User Create
+POST http://localhost:8009/user
+Content-Type: application/json
+
+{
+    "name": "Abhi"
+}
+
+### GET User
+GET http://localhost:8009/user/1
+
+### Health
+GET http://localhost:8009/
