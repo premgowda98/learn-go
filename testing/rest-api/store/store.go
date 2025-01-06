@@ -10,19 +10,18 @@ type Store struct {
 	db *sql.DB
 }
 
-func New(db *sql.DB)*Store{
+func New(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
-
-func (s *Store) Create(u *models.User) error{
+func (s *Store) Create(u *models.User) error {
 	fmt.Println("Created user", u.Name)
 
 	query := `INSERT INTO users (name) VALUES (?)`
 
 	sql_smt, err := s.db.Prepare(query)
 
-	if err !=nil {
+	if err != nil {
 		return err
 	}
 
@@ -30,14 +29,14 @@ func (s *Store) Create(u *models.User) error{
 
 	_, err = sql_smt.Exec(u.Name)
 
-	if err !=nil {
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *Store) Get(id int) (*models.User, error){
+func (s *Store) Get(id int) (*models.User, error) {
 	query := `SELECT id, name FROM users WHERE id=?`
 	rows := s.db.QueryRow(query, id)
 
@@ -45,7 +44,7 @@ func (s *Store) Get(id int) (*models.User, error){
 
 	err := rows.Scan(&user.ID, &user.Name)
 
-	if err !=nil {
+	if err != nil {
 		return nil, err
 	}
 

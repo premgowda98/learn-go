@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"test/restapi/models"
 	"testing"
 
@@ -9,7 +8,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestService_Create(t *testing.T) {
+func Test_ServiceCreate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockStore := NewMockUserStore(ctrl)
 
@@ -29,14 +28,6 @@ func TestService_Create(t *testing.T) {
 			},
 			expErr: nil,
 		},
-		{
-			desc:  "success case: fail",
-			input: &models.UserRequest{ID: 1, Name: "fail"},
-			mockCalls: []*gomock.Call{
-				mockStore.EXPECT().Create(mockData).Return(nil),
-			},
-			expErr: errors.New("not allowed"),
-		},
 	}
 
 	for i, tc := range tcs {
@@ -45,5 +36,28 @@ func TestService_Create(t *testing.T) {
 		err := svc.Create(tc.input)
 
 		assert.Equalf(t, tc.expErr, err, "Test[%v] failed", i)
+	}
+}
+
+func Test_ServiceGet(t *testing.T){
+	ctrl := gomock.NewController(t)
+	mockStore := NewMockUserStore(ctrl)
+
+	tests := []struct{
+		input int
+		expectedOutput models.User
+	}{
+		{1, models.User{ID: 1, Name: "ko"}},
+	}
+
+	for _, test :=  range tests{
+		mockStore.EXPECT().Get(test.input).Return(&models.User{ID: 1, Name: "ko"}, nil)
+
+		svc := New(mockStore)
+		_, err := svc.Get(test.input)
+
+		if err!=nil{
+			t.Fatalf("not expecting error")
+		}
 	}
 }

@@ -34,6 +34,8 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		fmt.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	io.WriteString(w, "created")
