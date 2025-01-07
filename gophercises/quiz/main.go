@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 )
 
 func main() {
@@ -26,16 +27,29 @@ func main() {
 
 	correctAns := 0
 
+	timer := time.NewTimer(time.Duration(5)*time.Second)
+
 	for ind, record := range records {
 		fmt.Println(ind+1, "Ques:", record[0])
-		userInput := takeUserInput()
 
-		if userInput == record[1] {
-			correctAns += 1
+		answerChannel := make(chan string)
+
+		go func(){
+			answer := takeUserInput()
+			answerChannel <- answer
+		}()
+
+		select {
+		case <-timer.C:
+			fmt.Printf("\nYou got %d correct answers out of %d\n", correctAns, len(records))
+			return
+		case answer := <- answerChannel:
+			if answer == record[1] {
+				correctAns += 1
+			}
 		}
 	}
 
-	fmt.Printf("\nYou got %d correct answers out of %d\n", correctAns, len(records))
 
 }
 
