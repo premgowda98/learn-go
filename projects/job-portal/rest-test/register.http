@@ -1,0 +1,12 @@
+POST http://localhost:8080/register
+Content-Type: application/json
+
+{
+    "username": "prem",
+    "email": "prem@me.com",
+    "password": "123",
+    "is_admin": false
+}
+
+###
+GET http://localhost:8080/users/1
