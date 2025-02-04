@@ -23,3 +23,16 @@ func GetUserByID(db *sql.DB, id int) (*models.User, error) {
 
 	return user, nil
 }
+
+func GetUserByUsername(db *sql.DB, username *string) (*models.User, error) {
+	row := db.QueryRow(`SELECT id, username, password FROM users WHERE username=?`, username)
+	user := &models.User{}
+
+	err := row.Scan(&user.ID, &user.Username, &user.Password)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
