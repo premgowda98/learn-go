@@ -36,3 +36,30 @@ func GetUserByUsername(db *sql.DB, username *string) (*models.User, error) {
 
 	return user, nil
 }
+
+func UpdateUser(db *sql.DB, user *models.User, id int) (*models.User, error) {
+	query := `UPDATE users SET `
+
+	var values []any
+
+	if user.Username != nil {
+		query += "username = ?, "
+		values = append(values, *user.Username)
+	}
+
+	if user.Email != nil {
+		query += `email = ? `
+		values = append(values, *user.Email)
+	}
+
+	query += `WHERE id = ?`
+	values = append(values, id)
+
+	_, err := db.Exec(query, values...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}

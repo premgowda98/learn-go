@@ -10,6 +10,8 @@ Content-Type: application/json
 
 ###
 GET http://localhost:8080/users/1
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Mzk2NTkxNTUsImlhdCI6MTczOTY0MTE1NSwic3ViIjoicHJlbSIsInVzZXJuYW1lIjoicHJlbSJ9.p8EbUcwKouMesFNNP4h4lKcSPlrRUwzTRkk_V45CKf8
+
 
 ###
 POST http://localhost:8080/login
@@ -18,4 +20,14 @@ Content-Type: application/json
 {
     "username": "prem",
     "password": "123"
+}
+
+###
+PUT http://localhost:8080/users/1
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Mzk2NTkxNTUsImlhdCI6MTczOTY0MTE1NSwic3ViIjoicHJlbSIsInVzZXJuYW1lIjoicHJlbSJ9.p8EbUcwKouMesFNNP4h4lKcSPlrRUwzTRkk_V45CKf8
+Content-Type: application/json
+
+{
+    "username": "kumar",
+    "email": "premgowda@me.com"
 }
