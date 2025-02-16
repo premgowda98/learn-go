@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -11,12 +12,14 @@ type Engine struct {
 	Displacement int64     `json:"name"`
 	Cyclinders   int64     `json:"cylinders"`
 	Range        int64     `json:"range"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type EngineRequest struct {
-	Displacement int64     `json:"name"`
-	Cyclinders   int64     `json:"cylinders"`
-	Range        int64     `json:"range"`
+	Displacement int64 `json:"name"`
+	Cyclinders   int64 `json:"cylinders"`
+	Range        int64 `json:"range"`
 }
 
 func (e *EngineRequest) Validate() error {
@@ -32,7 +35,7 @@ func (e *EngineRequest) Validate() error {
 		return err
 	}
 
-	return nil 
+	return nil
 }
 
 func validateDisplacement(displacement int64) error {
