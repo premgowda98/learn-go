@@ -9,17 +9,17 @@ import (
 
 type Engine struct {
 	ID           uuid.UUID `json:"id"`
-	Displacement int64     `json:"name"`
-	Cyclinders   int64     `json:"cylinders"`
-	Range        int64     `json:"range"`
+	Displacement int       `json:"name"`
+	Cyclinders   int       `json:"cylinders"`
+	Range        int       `json:"range"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type EngineRequest struct {
-	Displacement int64 `json:"name"`
-	Cyclinders   int64 `json:"cylinders"`
-	Range        int64 `json:"range"`
+	Displacement int `json:"name"`
+	Cyclinders   int `json:"cylinders"`
+	Range        int `json:"range"`
 }
 
 func (e *EngineRequest) Validate() error {
@@ -38,7 +38,7 @@ func (e *EngineRequest) Validate() error {
 	return nil
 }
 
-func validateDisplacement(displacement int64) error {
+func validateDisplacement(displacement int) error {
 	if displacement <= 0 {
 		return errors.New("displacement must be greater then 0")
 	}
@@ -46,7 +46,7 @@ func validateDisplacement(displacement int64) error {
 	return nil
 }
 
-func validateCylinders(cylinders int64) error {
+func validateCylinders(cylinders int) error {
 	if cylinders <= 0 {
 		return errors.New("cylinders must be greater then 0")
 	}
@@ -54,7 +54,7 @@ func validateCylinders(cylinders int64) error {
 	return nil
 }
 
-func validateRange(rangeK int64) error {
+func validateRange(rangeK int) error {
 	if rangeK <= 0 {
 		return errors.New("range must be greater then 0")
 	}

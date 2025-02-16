@@ -20,7 +20,7 @@ func New(db *sql.DB) *Store {
 	}
 }
 
-func (s *Store) GetEngineById(ctx context.Context, id int64) (*models.Engine, error) {
+func (s *Store) GetEngineById(ctx context.Context, id int) (*models.Engine, error) {
 	var engine models.Engine
 
 	query := `SELECT e.id, e.displacement, e.cyclinders, e.range FROM engine e  WHERE id=$1`
@@ -82,7 +82,7 @@ func (s *Store) CreateEngine(ctx context.Context, engineRequest *models.EngineRe
 
 }
 
-func (s *Store) DeleteEngine(ctx context.Context, id int64) error {
+func (s *Store) DeleteEngine(ctx context.Context, id int) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	defer func() {
 		if err != nil {

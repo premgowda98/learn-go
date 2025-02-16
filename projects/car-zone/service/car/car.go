@@ -16,7 +16,7 @@ func New(store store.Car) *Service {
 	}
 }
 
-func (s *Service) GetCarById(ctx context.Context, id int64) (*models.Car, error) {
+func (s *Service) GetCarById(ctx context.Context, id int) (*models.Car, error) {
 	car, err := s.store.GetCarById(ctx, id)
 
 	if err != nil {
@@ -40,7 +40,7 @@ func (s *Service) CreateCar(ctx context.Context, carReq *models.CarRequest) (*mo
 
 	if err := carReq.Validate(); err != nil {
 		return nil, err
-	} 
+	}
 
 	car, err := s.store.CreateCar(ctx, carReq)
 

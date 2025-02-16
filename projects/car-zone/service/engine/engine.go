@@ -16,7 +16,7 @@ func New(store store.Engine) *Service {
 	}
 }
 
-func (s *Service) GetEngineById(ctx context.Context, id int64) (*models.Engine, error) {
+func (s *Service) GetEngineById(ctx context.Context, id int) (*models.Engine, error) {
 	engine, err := s.store.GetEngineById(ctx, id)
 
 	if err != nil {
@@ -29,7 +29,7 @@ func (s *Service) GetEngineById(ctx context.Context, id int64) (*models.Engine, 
 func (s *Service) CreateEngine(ctx context.Context, engineReq *models.EngineRequest) (*models.Engine, error) {
 	if err := engineReq.Validate(); err != nil {
 		return nil, err
-	} 
+	}
 
 	engine, err := s.store.CreateEngine(ctx, engineReq)
 

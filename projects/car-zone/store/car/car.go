@@ -20,7 +20,7 @@ func New(db *sql.DB) *Store {
 	}
 }
 
-func (s *Store) GetCarById(ctx context.Context, id int64) (*models.Car, error){
+func (s *Store) GetCarById(ctx context.Context, id int) (*models.Car, error) {
 	var car models.Car
 
 	query := `SELECT c.id, c.name, c.year, c.brand, c.fuel_type, c.price, c.created_at, c.updated_at,
@@ -28,11 +28,11 @@ func (s *Store) GetCarById(ctx context.Context, id int64) (*models.Car, error){
 
 	rows := s.db.QueryRowContext(ctx, query, id)
 
-	err := rows.Scan(&car.ID,&car.Name, &car.Year, &car.Brand, &car.FuelType, &car.Price, &car.CreatedAt, &car.UpdatedAt,
-	&car.Engine.ID, &car.Engine.Displacement, &car.Engine.Cyclinders, &car.Engine.Range)
+	err := rows.Scan(&car.ID, &car.Name, &car.Year, &car.Brand, &car.FuelType, &car.Price, &car.CreatedAt, &car.UpdatedAt,
+		&car.Engine.ID, &car.Engine.Displacement, &car.Engine.Cyclinders, &car.Engine.Range)
 
 	if err != nil {
-		if err == sql.ErrNoRows{
+		if err == sql.ErrNoRows {
 			return &car, nil
 		}
 		return nil, err
@@ -41,40 +41,40 @@ func (s *Store) GetCarById(ctx context.Context, id int64) (*models.Car, error){
 	return &car, nil
 }
 
-func (s *Store) GetCarByBrand(ctx context.Context, brand string) ([]*models.Car, error){
+func (s *Store) GetCarByBrand(ctx context.Context, brand string) ([]*models.Car, error) {
 	var cars []*models.Car
 
 	query := `SELECT c.id, c.name, c.year, c.brand, c.fuel_type, c.price, c.created_at, c.updated_at FROM cars c WHERE brand=$1`
 
 	rows, err := s.db.QueryContext(ctx, query, brand)
-	
+
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	for rows.Next(){
+	for rows.Next() {
 		var car models.Car
-		err := rows.Scan(&car.ID,&car.Name, &car.Year, &car.Brand, &car.FuelType,&car.Price, &car.CreatedAt, &car.UpdatedAt)
+		err := rows.Scan(&car.ID, &car.Name, &car.Year, &car.Brand, &car.FuelType, &car.Price, &car.CreatedAt, &car.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
 
 		cars = append(cars, &car)
 	}
-	
+
 	return cars, nil
 }
 
-func (s *Store) CreateCar(ctx context.Context, carRequest *models.CarRequest) (*models.Car, error){
+func (s *Store) CreateCar(ctx context.Context, carRequest *models.CarRequest) (*models.Car, error) {
 	createdCar := &models.Car{}
 	var engineId uuid.UUID
 
 	err := s.db.QueryRowContext(ctx, `SELECT id from engine where id=$1`, &carRequest.Engine.ID).Scan(&engineId)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows){
+		if errors.Is(err, sql.ErrNoRows) {
 			return createdCar, errors.New("engine id not present")
 		}
 		return createdCar, err
@@ -84,13 +84,13 @@ func (s *Store) CreateCar(ctx context.Context, carRequest *models.CarRequest) (*
 	createdAt := time.Now()
 
 	newCar := &models.Car{
-		ID: carId,
-		Name: carRequest.Name,
-		Brand: carRequest.Brand,
-		Year: carRequest.Year,
-		FuelType: carRequest.FuelType,
-		Price: carRequest.Price,
-		Engine: carRequest.Engine,
+		ID:        carId,
+		Name:      carRequest.Name,
+		Brand:     carRequest.Brand,
+		Year:      carRequest.Year,
+		FuelType:  carRequest.FuelType,
+		Price:     carRequest.Price,
+		Engine:    carRequest.Engine,
 		CreatedAt: createdAt,
 	}
 
@@ -100,8 +100,8 @@ func (s *Store) CreateCar(ctx context.Context, carRequest *models.CarRequest) (*
 		return createdCar, err
 	}
 
-	defer func(){
-		if err !=nil {
+	defer func() {
+		if err != nil {
 			tx.Rollback()
 			return
 		}
@@ -112,11 +112,11 @@ func (s *Store) CreateCar(ctx context.Context, carRequest *models.CarRequest) (*
 	query := `INSERT INTO car (id, name, year, brand, fuel_type, engine_id, price, created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)
 	RETURNING id, name, year, brand, fuel_type, engine_id, price, created_at`
 
-	err = tx.QueryRowContext(ctx, query, &newCar.ID,&newCar.Name, &newCar.Year, &newCar.Brand, 
+	err = tx.QueryRowContext(ctx, query, &newCar.ID, &newCar.Name, &newCar.Year, &newCar.Brand,
 		&newCar.FuelType, &newCar.Engine.ID, &newCar.Price, &newCar.CreatedAt).Scan(
-			&createdCar.ID,&createdCar.Name, &createdCar.Year, &createdCar.Brand, &createdCar.FuelType,
-			&createdCar.Engine.ID, &createdCar.Price, &createdCar.CreatedAt,
-		)
+		&createdCar.ID, &createdCar.Name, &createdCar.Year, &createdCar.Brand, &createdCar.FuelType,
+		&createdCar.Engine.ID, &createdCar.Price, &createdCar.CreatedAt,
+	)
 
 	if err != nil {
 		return createdCar, err
@@ -126,12 +126,11 @@ func (s *Store) CreateCar(ctx context.Context, carRequest *models.CarRequest) (*
 
 }
 
-
-func (s *Store) DeleteCar(ctx context.Context, id int64) (error){
+func (s *Store) DeleteCar(ctx context.Context, id int) error {
 
 	tx, err := s.db.BeginTx(ctx, nil)
-	defer func(){
-		if err !=nil {
+	defer func() {
+		if err != nil {
 			tx.Rollback()
 			return
 		}
@@ -141,7 +140,7 @@ func (s *Store) DeleteCar(ctx context.Context, id int64) (error){
 
 	result, err := tx.ExecContext(ctx, `DELETE FROM car WHERE id=$1`, id)
 
-	if err !=nil {
+	if err != nil {
 		return err
 	}
 
@@ -151,7 +150,7 @@ func (s *Store) DeleteCar(ctx context.Context, id int64) (error){
 		return err
 	}
 
-	if rowsEffect == 0{
+	if rowsEffect == 0 {
 		return errors.New("no records found")
 	}
 
