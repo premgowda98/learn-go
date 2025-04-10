@@ -50,9 +50,9 @@ func makePizza(pizzaNumber int) *PizzaOrder {
 		if rnd < 5 {
 			pizzasFailed++
 			if rnd <= 2 {
-				msg = fmt.Sprintf("Failed to make pizza #%d, ran out of ingredients", pizzaNumber)
+				msg = fmt.Sprintf("Failed to make pizza #%d ran out of ingredients", pizzaNumber)
 			} else {
-				msg = fmt.Sprintf("Failed to make pizza #%d, no power", pizzaNumber)
+				msg = fmt.Sprintf("Failed to make pizza #%d no power", pizzaNumber)
 			}
 		} else {
 			pizzasMade++
@@ -113,12 +113,13 @@ func main() {
 	for i := range pizzaJob.data{
 		if i.pizzaNumber <= NumberOfPizzas {
 			if i.success {
+				color.Green(i.message)
 				color.Green("Order #%d out for delivery", i.pizzaNumber)
 			} else {
+				color.Red(i.message)
 				color.Red("Failed to make pizza #%d", i.pizzaNumber)
 			}
 		} else {
-			color.Cyan("Done making pizza")
 
 			err := pizzaJob.Close()
 
