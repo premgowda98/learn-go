@@ -1,0 +1,8 @@
+time=2025-04-21T20:50:45+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:22 msg="starting user processing"
+time=2025-04-21T20:50:45+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:25 msg="creating new user"
+time=2025-04-21T20:50:45+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:43 msg="user created successfully"
+time=2025-04-21T20:50:45+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:35 msg="application finished"
+time=2025-04-21T20:53:24+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:22 msg="starting user processing"
+time=2025-04-21T20:53:24+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:23 msg="creating new user"
+time=2025-04-21T20:53:24+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:41 msg="user created successfully"
+time=2025-04-21T20:53:24+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:33 msg="application finished" hi=you

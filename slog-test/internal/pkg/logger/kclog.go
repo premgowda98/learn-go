@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"os"
@@ -16,7 +17,6 @@ var (
 	once     sync.Once
 )
 
-// Logger levels
 const (
 	LevelDebug = slog.LevelDebug
 	LevelInfo  = slog.LevelInfo
@@ -24,33 +24,30 @@ const (
 	LevelError = slog.LevelError
 )
 
-// Default configuration constants
 const (
-	DefaultLogPath    = "logs/app.log"
-	DefaultMaxSize    = 5 // megabytes
+	DefaultLogDir     = "logs"
+	DefaultMaxSize    = 5
 	DefaultMaxBackups = 3
-	DefaultMaxAge     = 28 // days
+	DefaultMaxAge     = 28
 	DefaultCompress   = true
-	DefaultLevel      = LevelInfo
+	DefaultLevel      = LevelDebug
 )
 
-// Config holds the configuration for the logger
 type Config struct {
-	LogPath    string
-	MaxSize    int // megabytes
+	LogDir     string
+	MaxSize    int
 	MaxBackups int
-	MaxAge     int // days
+	MaxAge     int
 	Compress   bool
 	Level      slog.Level
 }
 
-// NewLogger creates a new instance of KCLog with default configuration
 func NewLogger(packageName string) *slog.Logger {
 	var logger *slog.Logger
 
 	once.Do(func() {
 		cfg := Config{
-			LogPath:    DefaultLogPath,
+			LogDir:     DefaultLogDir,
 			MaxSize:    DefaultMaxSize,
 			MaxBackups: DefaultMaxBackups,
 			MaxAge:     DefaultMaxAge,
@@ -58,19 +55,32 @@ func NewLogger(packageName string) *slog.Logger {
 			Level:      DefaultLevel,
 		}
 
-		// Ensure log directory exists
-		os.MkdirAll(filepath.Dir(cfg.LogPath), 0755)
+		os.MkdirAll(cfg.LogDir, 0755)
 
-		// Configure file rotation using lumberjack
-		ljLogger := &lumberjack.Logger{
-			Filename:   cfg.LogPath,
+		errorLogger := &lumberjack.Logger{
+			Filename:   filepath.Join(cfg.LogDir, "error.log"),
 			MaxSize:    cfg.MaxSize,
 			MaxBackups: cfg.MaxBackups,
 			MaxAge:     cfg.MaxAge,
 			Compress:   cfg.Compress,
 		}
 
-		// Create common handler options
+		infoLogger := &lumberjack.Logger{
+			Filename:   filepath.Join(cfg.LogDir, "info.log"),
+			MaxSize:    cfg.MaxSize,
+			MaxBackups: cfg.MaxBackups,
+			MaxAge:     cfg.MaxAge,
+			Compress:   cfg.Compress,
+		}
+
+		debugLogger := &lumberjack.Logger{
+			Filename:   filepath.Join(cfg.LogDir, "debug.log"),
+			MaxSize:    cfg.MaxSize,
+			MaxBackups: cfg.MaxBackups,
+			MaxAge:     cfg.MaxAge,
+			Compress:   cfg.Compress,
+		}
+
 		opts := &slog.HandlerOptions{
 			Level:     cfg.Level,
 			AddSource: true,
@@ -82,24 +92,64 @@ func NewLogger(packageName string) *slog.Logger {
 			},
 		}
 
-		writer := io.MultiWriter(ljLogger, os.Stdout)
-
-		// Create JSON handler with package attribution
-		logHandler := slog.NewJSONHandler(writer, opts)
-		logger = slog.New(logHandler)
+		handler := slog.NewTextHandler(os.Stdout, opts)
+		logger = slog.New(&leveledHandler{
+			defaultHandler: handler,
+			errorWriter:    io.MultiWriter(errorLogger, os.Stdout),
+			infoWriter:     io.MultiWriter(infoLogger, os.Stdout),
+			debugWriter:    io.MultiWriter(debugLogger, os.Stdout),
+			opts:           opts,
+		})
 
 		instance = logger
 		slog.SetDefault(instance)
 	})
 
-	// Always update the package name, even for existing instance
-	return instance.With("package", packageName)
+	return instance
 }
 
-// GetLogger returns the singleton logger instance, initializing it if necessary
-func GetLogger(packageName string) *slog.Logger {
-	if instance == nil {
-		return NewLogger(packageName)
+type leveledHandler struct {
+	defaultHandler slog.Handler
+	errorWriter    io.Writer
+	infoWriter     io.Writer
+	debugWriter    io.Writer
+	opts           *slog.HandlerOptions
+}
+
+func (h *leveledHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.defaultHandler.Enabled(ctx, level)
+}
+
+func (h *leveledHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &leveledHandler{
+		defaultHandler: h.defaultHandler.WithAttrs(attrs),
+		errorWriter:    h.errorWriter,
+		infoWriter:     h.infoWriter,
+		debugWriter:    h.debugWriter,
+		opts:           h.opts,
 	}
-	return instance.With("package", packageName)
+}
+
+func (h *leveledHandler) WithGroup(name string) slog.Handler {
+	return &leveledHandler{
+		defaultHandler: h.defaultHandler.WithGroup(name),
+		errorWriter:    h.errorWriter,
+		infoWriter:     h.infoWriter,
+		debugWriter:    h.debugWriter,
+		opts:           h.opts,
+	}
+}
+
+func (h *leveledHandler) Handle(ctx context.Context, r slog.Record) error {
+	var handler slog.Handler
+	switch {
+	case r.Level >= LevelError:
+		handler = slog.NewTextHandler(h.errorWriter, h.opts)
+	case r.Level >= LevelInfo:
+		handler = slog.NewTextHandler(h.infoWriter, h.opts)
+	default:
+		handler = slog.NewTextHandler(h.debugWriter, h.opts)
+	}
+
+	return handler.Handle(ctx, r)
 }
