@@ -6,3 +6,15 @@ time=2025-04-21T20:53:24+05:30 level=INFO source=/home/premgowda/my-code/learn-g
 time=2025-04-21T20:53:24+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:23 msg="creating new user"
 time=2025-04-21T20:53:24+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:41 msg="user created successfully"
 time=2025-04-21T20:53:24+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:33 msg="application finished" hi=you
+time=2025-04-22T21:49:52+05:30 level=INFO msg="starting user processing"
+time=2025-04-22T21:49:52+05:30 level=INFO msg="creating new user"
+time=2025-04-22T21:49:52+05:30 level=INFO msg="user created successfully"
+time=2025-04-22T21:49:52+05:30 level=INFO msg="application finished"
+time=2025-04-22T21:50:14+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:19 msg="starting user processing"
+time=2025-04-22T21:50:14+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:23 msg="creating new user"
+time=2025-04-22T21:50:14+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:39 msg="user created successfully"
+time=2025-04-22T21:50:14+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:30 msg="application finished"
+time=2025-04-22T21:52:09+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:19 msg="starting user processing"
+time=2025-04-22T21:52:09+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:23 msg="creating new user"
+time=2025-04-22T21:52:09+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:39 msg="user created successfully" user=123
+time=2025-04-22T21:52:09+05:30 level=INFO source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:30 msg="application finished"

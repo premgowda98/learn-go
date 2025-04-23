@@ -2,3 +2,9 @@ time=2025-04-21T20:50:45+05:30 level=ERROR source=/home/premgowda/my-code/learn-
 time=2025-04-21T20:50:45+05:30 level=ERROR source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:27 msg="failed to create user" error="something went wrong" user_id=1
 time=2025-04-21T20:53:24+05:30 level=ERROR source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:38 msg="failed here"
 time=2025-04-21T20:53:24+05:30 level=ERROR source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:27 msg="failed to create user" error="something went wrong" user_id=1
+time=2025-04-22T21:49:52+05:30 level=ERROR msg="failed here"
+time=2025-04-22T21:49:52+05:30 level=ERROR msg="failed to create user" error="something went wrong" user_id=1
+time=2025-04-22T21:50:14+05:30 level=ERROR source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:37 msg="failed here"
+time=2025-04-22T21:50:14+05:30 level=ERROR source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:24 msg="failed to create user" error="something went wrong" user_id=1
+time=2025-04-22T21:52:09+05:30 level=ERROR source=/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go:37 msg="failed here"
+time=2025-04-22T21:52:09+05:30 level=ERROR source=/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go:24 msg="failed to create user" error="something went wrong" user_id=1

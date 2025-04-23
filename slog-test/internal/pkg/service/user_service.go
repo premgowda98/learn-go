@@ -36,6 +36,6 @@ func (s *UserService) CreateUser(user User) error {
 
 	slog.Error("failed here")
 
-	slog.Info("user created successfully")
+	slog.Info("user created successfully", "user", 123)
 	return fmt.Errorf("something went wrong")
 }

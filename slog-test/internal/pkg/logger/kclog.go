@@ -45,6 +45,7 @@ type Config struct {
 func NewLogger(packageName string) *slog.Logger {
 	var logger *slog.Logger
 
+	//singleton
 	once.Do(func() {
 		cfg := Config{
 			LogDir:     DefaultLogDir,
