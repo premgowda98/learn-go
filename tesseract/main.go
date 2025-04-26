@@ -10,11 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/otiai10/gosseract/v2"
 	"github.com/pkg/errors"
 )
 
 var MaxContentReadTimeout = time.Duration(15) * time.Second
+var MaxImageSize int64 = 10 * 1024 * 1024 // 40MB
 
 func main() {
 
@@ -41,6 +43,12 @@ func readImageFile(fPath string) (string, error) {
 	}
 	defer file.Close()
 	fileInfo, _ := file.Stat()
+
+	if fileInfo.Size() > MaxImageSize {
+		slog.Error(fmt.Sprintf("readImageFile:file size too large: %s", humanize.Bytes(uint64(fileInfo.Size()))))
+		return "", errors.Wrapf(err, "file size too large:%s", fPath)
+	}
+
 	data := make([]byte, fileInfo.Size())
 
 	buffer := bufio.NewReader(file)

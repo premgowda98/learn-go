@@ -93,7 +93,7 @@ func NewLogger(packageName string) *slog.Logger {
 			},
 		}
 
-		handler := slog.NewTextHandler(os.Stdout, opts)
+		handler := slog.NewJSONHandler(os.Stdout, opts)
 		logger = slog.New(&leveledHandler{
 			defaultHandler: handler,
 			errorWriter:    io.MultiWriter(errorLogger, os.Stdout),
@@ -145,11 +145,11 @@ func (h *leveledHandler) Handle(ctx context.Context, r slog.Record) error {
 	var handler slog.Handler
 	switch {
 	case r.Level >= LevelError:
-		handler = slog.NewTextHandler(h.errorWriter, h.opts)
+		handler = slog.NewJSONHandler(h.errorWriter, h.opts)
 	case r.Level >= LevelInfo:
-		handler = slog.NewTextHandler(h.infoWriter, h.opts)
+		handler = slog.NewJSONHandler(h.infoWriter, h.opts)
 	default:
-		handler = slog.NewTextHandler(h.debugWriter, h.opts)
+		handler = slog.NewJSONHandler(h.debugWriter, h.opts)
 	}
 
 	return handler.Handle(ctx, r)
