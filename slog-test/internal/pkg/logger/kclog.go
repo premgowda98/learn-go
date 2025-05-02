@@ -96,9 +96,9 @@ func NewLogger(packageName string) *slog.Logger {
 		handler := slog.NewJSONHandler(os.Stdout, opts)
 		logger = slog.New(&leveledHandler{
 			defaultHandler: handler,
-			errorWriter:    io.MultiWriter(errorLogger, os.Stdout),
-			infoWriter:     io.MultiWriter(infoLogger, os.Stdout),
-			debugWriter:    io.MultiWriter(debugLogger, os.Stdout),
+			errorWriter:    errorLogger,
+			infoWriter:     infoLogger,
+			debugWriter:    debugLogger,
 			opts:           opts,
 		})
 
