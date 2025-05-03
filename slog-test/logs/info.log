@@ -1,4 +1,4 @@
-{"time":"2025-05-02T18:04:14+05:30","level":"INFO","source":{"function":"main.main","file":"/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go","line":19},"msg":"starting user processing"}
-{"time":"2025-05-02T18:04:14+05:30","level":"INFO","source":{"function":"slogtest/internal/pkg/service.(*UserService).CreateUser","file":"/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go","line":23},"msg":"creating new user"}
-{"time":"2025-05-02T18:04:14+05:30","level":"INFO","source":{"function":"slogtest/internal/pkg/service.(*UserService).CreateUser","file":"/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go","line":39},"msg":"user created successfully","user":123}
-{"time":"2025-05-02T18:04:14+05:30","level":"INFO","source":{"function":"main.main","file":"/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go","line":30},"msg":"application finished"}
+I2025-05-02 18:52:23.476 /home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go %!s(int=19) starting user processing 
+I2025-05-02 18:52:23.476 /home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go %!s(int=23) creating new user 
+I2025-05-02 18:52:23.476 /home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go %!s(int=39) user created successfully user 123
+I2025-05-02 18:52:23.476 /home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go %!s(int=30) application finished prem kumar

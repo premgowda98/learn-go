@@ -2,10 +2,13 @@ package logger
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -109,6 +112,66 @@ func NewLogger(packageName string) *slog.Logger {
 	return instance
 }
 
+type CustomHandler struct {
+	slog.Handler
+	w    io.Writer
+	opts slog.HandlerOptions
+}
+
+func NewCustomHandler(w io.Writer, opts *slog.HandlerOptions) *CustomHandler {
+	return &CustomHandler{
+		Handler: slog.NewTextHandler(w, opts),
+		w:       w,
+		opts:    *opts,
+	}
+}
+
+func getCaller(skip int) *slog.Source {
+	_, file, line, ok := runtime.Caller(skip)
+	if !ok {
+		return nil
+	}
+
+	wd, err := os.Getwd()
+	if err == nil {
+		if relPath, err := filepath.Rel(wd, file); err == nil {
+			file = relPath
+		}
+	}
+
+	return &slog.Source{
+		File: file,
+		Line: line,
+	}
+}
+
+func (h *CustomHandler) Handle(ctx context.Context, r slog.Record) error {
+	level := strings.ToUpper(r.Level.String())
+	timeStr := r.Time.Format("2006-01-02 15:04:05.000")
+
+	var otherOpts string = ""
+	// fmt.Println(r.sou)
+	r.Attrs(func(a slog.Attr) bool {
+		otherOpts += a.Key
+		otherOpts += " "
+		otherOpts += a.Value.String()
+		return true
+	})
+
+	source := getCaller(2)
+
+	output := fmt.Sprintf("%s%s %s %s %s\n",
+		level[:1],
+		timeStr,
+		slog.String("source", fmt.Sprintf("%s:%d", source.File, source.Line)),
+		r.Message,
+		otherOpts,
+	)
+
+	_, err := h.w.Write([]byte(output))
+	return err
+}
+
 type leveledHandler struct {
 	defaultHandler slog.Handler
 	errorWriter    io.Writer
@@ -145,11 +208,11 @@ func (h *leveledHandler) Handle(ctx context.Context, r slog.Record) error {
 	var handler slog.Handler
 	switch {
 	case r.Level >= LevelError:
-		handler = slog.NewJSONHandler(h.errorWriter, h.opts)
+		handler = NewCustomHandler(h.errorWriter, h.opts)
 	case r.Level >= LevelInfo:
-		handler = slog.NewJSONHandler(h.infoWriter, h.opts)
+		handler = NewCustomHandler(h.infoWriter, h.opts)
 	default:
-		handler = slog.NewJSONHandler(h.debugWriter, h.opts)
+		handler = NewCustomHandler(h.debugWriter, h.opts)
 	}
 
 	return handler.Handle(ctx, r)

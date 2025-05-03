@@ -27,5 +27,5 @@ func main() {
 		)
 	}
 
-	slog.Info("application finished")
+	slog.Info("application finished", "prem", "kumar")
 }

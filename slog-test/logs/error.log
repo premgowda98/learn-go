@@ -16,3 +16,21 @@ time=2025-04-25T22:42:24+05:30 level=ERROR source=/home/premgowda/my-code/learn-
 {"time":"2025-05-02T16:45:40+05:30","level":"ERROR","source":{"function":"main.main","file":"/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go","line":24},"msg":"failed to create user","error":"something went wrong","user_id":"1"}
 {"time":"2025-05-02T18:04:14+05:30","level":"ERROR","source":{"function":"slogtest/internal/pkg/service.(*UserService).CreateUser","file":"/home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go","line":37},"msg":"failed here"}
 {"time":"2025-05-02T18:04:14+05:30","level":"ERROR","source":{"function":"main.main","file":"/home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go","line":24},"msg":"failed to create user","error":"something went wrong","user_id":"1"}
+E2025-05-02 18:25:15.020  "failed here"
+E2025-05-02 18:25:15.020  "failed to create user"
+E2025-05-02 18:26:53.517  "failed here"
+E2025-05-02 18:26:53.517  "failed to create user"
+E2025-05-02 18:28:29.525  "failed here"
+E2025-05-02 18:28:29.525  "failed to create user"
+E2025-05-02 18:30:58.267  "failed here"
+E2025-05-02 18:30:58.267  "failed to create user"
+E2025-05-02 18:33:30.907 source=../../../../../usr/local/go/src/log/slog/logger.go:257 "failed here"
+E2025-05-02 18:33:30.907 source=../../../../../usr/local/go/src/log/slog/logger.go:257 "failed to create user"
+E2025-05-02 18:33:45.029 source=internal/pkg/logger/kclog.go:218 "failed here"
+E2025-05-02 18:33:45.029 source=internal/pkg/logger/kclog.go:218 "failed to create user"
+E2025-05-02 18:40:18.926 source=internal/pkg/logger/kclog.go:217 failed here 
+E2025-05-02 18:40:18.926 source=internal/pkg/logger/kclog.go:217 failed to create user errorsomething went wronguser_id1
+E2025-05-02 18:40:44.473 source=internal/pkg/logger/kclog.go:218 failed here 
+E2025-05-02 18:40:44.473 source=internal/pkg/logger/kclog.go:218 failed to create user error something went wronguser_id 1
+E2025-05-02 18:52:23.476 /home/premgowda/my-code/learn-go/slog-test/internal/pkg/service/user_service.go %!s(int=37) failed here 
+E2025-05-02 18:52:23.476 /home/premgowda/my-code/learn-go/slog-test/cmd/app/main.go %!s(int=24) failed to create user error something went wronguser_id 1
