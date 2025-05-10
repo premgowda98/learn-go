@@ -1,0 +1,14 @@
+Source: gowda
+Section: utils
+Priority: optional
+Maintainer: Your Name <your.email@example.com>
+Build-Depends: debhelper (>= 11)
+Standards-Version: 4.5.0
+Homepage: https://example.com/gowda
+
+Package: gowda
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Simple command line message printer
+ A simple utility that prints the message provided as a command-line argument.
+ Usage: gowda <message>

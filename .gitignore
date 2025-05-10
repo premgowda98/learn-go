@@ -29,3 +29,13 @@ go.work.sum
 *.jpg
 *.png
 *.jpeg
+
+# Debian packaging artifacts
+*.deb
+*.buildinfo
+*.changes
+*.substvars
+deb-package/debian/files
+deb-package/debian/.debhelper/
+deb-package/debian/debhelper-build-stamp
+deb-package/debian/*/
