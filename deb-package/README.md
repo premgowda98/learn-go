@@ -283,7 +283,7 @@ You need to have the following packages installed:
 
 ```bash
 sudo apt update
-sudo apt install build-essential debhelper devscripts dh-make golang-go
+sudo apt install build-essential debhelper devscripts dh-make
 ```
 
 ### Building the Debian Package
