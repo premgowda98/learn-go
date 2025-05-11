@@ -40,6 +40,27 @@ The `debian/` directory contains all the configuration files needed to build a D
   - Description
   - Maintainer information
 
+  **Detailed Explanation of the Control File's Dependencies:**
+  
+  In the `control` file, you'll typically see this important line:
+  ```
+  Depends: ${shlibs:Depends}, ${misc:Depends}
+  ```
+  
+  These are **substitution variables** that get automatically resolved during the package build process:
+  
+  - `${shlibs:Depends}`: Automatically detects shared library dependencies that your executables need
+    - The `dpkg-shlibdeps` tool analyzes your binary and determines which libraries it uses
+    - For Go programs, this may be minimal if statically linked, or more extensive if using CGO
+    - Example output: `libc6 (>= 2.29), libstdc++6 (>= 9.3.0)`
+  
+  - `${misc:Depends}`: Collects dependencies required by debhelper scripts used in your package build
+    - Added by various debhelper commands when they need specific packages to function
+    - Handles special cases like dependencies on particular package versions
+    - May be empty in simple packages
+
+  This automatic dependency resolution ensures your package will work on the target system without manually tracking libraries, making your package more maintainable and accurate.
+
 - **rules**: A Makefile that specifies how to build and install the package.
   - Tells the build system how to compile your software
   - Handles the installation of files to the correct locations
@@ -367,3 +388,92 @@ sudo apt purge gowda
 - [Debian New Maintainers' Guide](https://www.debian.org/doc/manuals/maint-guide/)
 - [Debian Packaging Tutorial](https://wiki.debian.org/Packaging/Intro)
 - [Go Packaging Best Practices](https://go.dev/doc/modules/developing)
+
+## Privileged vs. Normal Debian Builds
+
+When building Debian packages, you have two main approaches: privileged builds and normal (non-privileged) builds. Each has its advantages and use cases.
+
+### Privileged Builds
+
+Privileged builds are executed with root privileges and are typically done in a controlled environment.
+
+**Characteristics:**
+- Run as the root user
+- Can interact with system-wide resources
+- Often performed in a dedicated build environment (like pbuilder, sbuild, or a CI/CD pipeline)
+- Used for official package distribution
+
+**Example (using pbuilder):**
+```bash
+# Create a build environment
+sudo pbuilder create --distribution bullseye
+
+# Build the package
+sudo pbuilder build ../gowda_1.0.0.dsc
+```
+
+**Advantages:**
+- More accurate simulation of the real package installation environment
+- Can test root-required operations in maintainer scripts
+- Better isolation from the host system
+- Controlled dependencies
+- Reproducible builds
+
+**Disadvantages:**
+- Requires root access
+- More complex setup
+- Slower than normal builds
+
+### Normal (Non-Privileged) Builds
+
+Normal builds are executed as a regular user without root privileges.
+
+**Example:**
+```bash
+# Build from the project directory
+dpkg-buildpackage -b -us -uc -rfakeroot
+```
+
+The `-rfakeroot` option is crucial here - it uses the `fakeroot` utility to simulate root privileges for file operations without actually requiring them.
+
+**Advantages:**
+- Safer (no root privileges required)
+- Simpler and faster setup
+- Quicker iteration during development
+- Can be run by any user without sudo access
+
+**Disadvantages:**
+- Cannot fully test all aspects of package installation
+- May not catch all potential issues with maintainer scripts
+- Less isolated from the host system
+
+### Best Practices
+
+1. **Development Workflow:**
+   - Use normal builds with fakeroot during development for quick iteration
+   - Use `lintian` to check your package for errors and policy violations:
+     ```bash
+     lintian ../gowda_1.0.0_amd64.changes
+     ```
+
+2. **Testing and Release:**
+   - Test in a clean, privileged build environment before release
+   - Consider using tools like pbuilder or sbuild for final testing
+   - For maximum compatibility, test on the oldest supported distribution version
+
+3. **Continuous Integration:**
+   - Set up CI/CD pipelines to build packages in clean environments
+   - Test installation, upgrade, and removal in isolated containers
+
+### When to Use Each Method
+
+- **Use normal builds with fakeroot when:**
+  - Developing and debugging your package
+  - Making frequent changes and needing quick feedback
+  - Working on your personal developer machine
+
+- **Use privileged builds when:**
+  - Preparing for official distribution
+  - Final testing before release
+  - Building in CI/CD environments
+  - Testing complex maintainer scripts that interact with system services
