@@ -290,7 +290,7 @@ sudo apt install build-essential debhelper devscripts dh-make
 
 1. Navigate to the project directory:
    ```bash
-   cd /path/to/gowda
+   cd <proj-dir>
    ```
 
 2. Build the Debian package:

@@ -11,4 +11,4 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Simple command line message printer
  A simple utility that prints the message provided as a command-line argument.
- Usage: gowda <message>
+ Usage => gowda <message>
