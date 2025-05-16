@@ -1,156 +1,235 @@
+// Package errors implements functions for manipulating errors.
+//
+// The traditional error handling idiom in Go is roughly akin to
+//
+//	if err != nil {
+//	        return err
+//	}
+//
+// which applied recursively up the call stack results in error reports
+// without context or debugging information. The errors package allows
+// programmers to add context to the failure path in their code in a way
+// that does not destroy the original value of the error.
+//
+// # Adding context to an error
+//
+// The errors.Wrap function returns a new error that adds context to the
+// original error. For example
+//
+//	_, err := ioutil.ReadAll(r)
+//	if err != nil {
+//	        return errors.Wrap(err, "read failed")
+//	}
+//
+// In addition, errors.Wrap records the file and line where it was called,
+// allowing the programmer to retrieve the path to the original error.
+//
+// # Retrieving the cause of an error
+//
+// Using errors.Wrap constructs a stack of errors, adding context to the
+// preceding error. Depending on the nature of the error it may be necessary
+// to reverse the operation of errors.Wrap to retrieve the original error
+// for inspection. Any error value which implements this interface
+//
+//	type causer interface {
+//	     Cause() error
+//	}
+//
+// can be inspected by errors.Cause. errors.Cause will recursively retrieve
+// the topmost error which does nor implement causer, which is assumed to be
+// the original cause. For example:
+//
+//	switch err := errors.Cause(err).(type) {
+//	case *MyError:
+//	        // handle specifically
+//	default:
+//	        // unknown error
+//	}
 package errors
 
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"runtime"
 	"strings"
 )
 
-// Standard error types that can be checked with errors.Is
-var (
-	ErrNotFound      = errors.New("resource not found")
-	ErrUnauthorized  = errors.New("unauthorized access")
-	ErrInvalidInput  = errors.New("invalid input")
-	ErrInternal      = errors.New("internal error")
-	ErrDatabaseError = errors.New("database error")
-)
+// location represents a program counter that
+// implements the Location() method.
+type location uintptr
 
-// StackTracer is an interface for errors that can provide a stack trace
-type StackTracer interface {
-	StackTrace() string
-}
-
-// OpError represents an operational error with context
-type OpError struct {
-	// Op is the operation that failed (e.g., "db.query", "http.request")
-	Op string
-	// Err is the underlying error
-	Err error
-	// Message is a human-readable error message
-	Message string
-	// Fields contains additional structured context for the error
-	Fields map[string]interface{}
-	// stack contains the stack trace
-	stack string
-}
-
-// Error implements the error interface
-func (e *OpError) Error() string {
-	if e.Message != "" {
-		return fmt.Sprintf("%s: %s: %v", e.Op, e.Message, e.Err)
+func (l location) Location() (string, int) {
+	pc := uintptr(l) - 1
+	fn := runtime.FuncForPC(pc)
+	if fn == nil {
+		return "unknown", 0
 	}
-	return fmt.Sprintf("%s: %v", e.Op, e.Err)
-}
 
-// Unwrap allows errors.Is and errors.As to work with our custom error
-func (e *OpError) Unwrap() error {
-	return e.Err
-}
+	file, line := fn.FileLine(pc)
 
-// StackTrace returns the stack trace for this error
-func (e *OpError) StackTrace() string {
-	return e.stack
-}
-
-// captureStack captures the current stack trace, skipping the given number of frames
-func captureStack(skip int) string {
-	const depth = 32
-	var pcs [depth]uintptr
-	n := runtime.Callers(skip, pcs[:])
-	frames := runtime.CallersFrames(pcs[:n])
-	
-	var builder strings.Builder
-	for {
-		frame, more := frames.Next()
-		
-		// Skip runtime frames
-		if !strings.Contains(frame.File, "runtime/") {
-			fmt.Fprintf(&builder, "%s:%d - %s\n", frame.File, frame.Line, frame.Function)
-		}
-		
-		if !more {
+	// Here we want to get the source file path relative to the compile time
+	// GOPATH. As of Go 1.6.x there is no direct way to know the compiled
+	// GOPATH at runtime, but we can infer the number of path segments in the
+	// GOPATH. We note that fn.Name() returns the function name qualified by
+	// the import path, which does not include the GOPATH. Thus we can trim
+	// segments from the beginning of the file path until the number of path
+	// separators remaining is one more than the number of path separators in
+	// the function name. For example, given:
+	//
+	//    GOPATH     /home/user
+	//    file       /home/user/src/pkg/sub/file.go
+	//    fn.Name()  pkg/sub.Type.Method
+	//
+	// We want to produce:
+	//
+	//    pkg/sub/file.go
+	//
+	// From this we can easily see that fn.Name() has one less path separator
+	// than our desired output. We count separators from the end of the file
+	// path until it finds two more than in the function name and then move
+	// one character forward to preserve the initial path segment without a
+	// leading separator.
+	const sep = "/"
+	goal := strings.Count(fn.Name(), sep) + 2
+	i := len(file)
+	for n := 0; n < goal; n++ {
+		i = strings.LastIndex(file[:i], sep)
+		if i == -1 {
+			// not enough separators found, set i so that the slice expression
+			// below leaves file unmodified
+			i = -len(sep)
 			break
 		}
 	}
-	
-	return builder.String()
+	// get back to 0 or trim the leading separator
+	file = file[i+len(sep):]
+
+	return file, line
 }
 
-// E creates a new OpError with the given operation and underlying error
-func E(op string, err error, opts ...func(*OpError)) error {
-	if err == nil {
+// New returns an error that formats as the given text.
+func New(text string) error {
+	pc, _, _, _ := runtime.Caller(1)
+	return struct {
+		error
+		location
+	}{
+		errors.New(text),
+		location(pc),
+	}
+}
+
+type cause struct {
+	cause   error
+	message string
+}
+
+func (c cause) Error() string   { return c.Message() + ": " + c.Cause().Error() }
+func (c cause) Cause() error    { return c.cause }
+func (c cause) Message() string { return c.message }
+
+// Wrap returns an error annotating the cause with message.
+// If cause is nil, Wrap returns nil.
+func Wrap(cause error, message string) error {
+	if cause == nil {
 		return nil
 	}
-	
-	// Create a new OpError
-	e := &OpError{
-		Op:    op,
-		Err:   err,
-		stack: captureStack(3), // Skip 3 stack frames to get to the caller's caller
-	}
-	
-	// Apply the options
-	for _, opt := range opts {
-		opt(e)
-	}
-	
-	return e
+	pc, _, _, _ := runtime.Caller(1)
+	return wrap(cause, message, pc)
 }
 
-// WithMessage adds a message to the error
-func WithMessage(message string) func(*OpError) {
-	return func(e *OpError) {
-		e.Message = message
+// Wrapf returns an error annotating the cause with the format specifier.
+// If cause is nil, Wrapf returns nil.
+func Wrapf(cause error, format string, args ...interface{}) error {
+	if cause == nil {
+		return nil
+	}
+	pc, _, _, _ := runtime.Caller(1)
+	return wrap(cause, fmt.Sprintf(format, args...), pc)
+}
+
+func wrap(err error, msg string, pc uintptr) error {
+	return struct {
+		cause
+		location
+	}{
+		cause{
+			cause:   err,
+			message: msg,
+		},
+		location(pc),
 	}
 }
 
-// WithField adds a field to the error
-func WithField(key string, value interface{}) func(*OpError) {
-	return func(e *OpError) {
-		if e.Fields == nil {
-			e.Fields = make(map[string]interface{})
+type causer interface {
+	Cause() error
+}
+
+// Cause returns the underlying cause of the error, if possible.
+// An error value has a cause if it implements the following
+// interface:
+//
+//	type Causer interface {
+//	       Cause() error
+//	}
+//
+// If the error does not implement Cause, the original error will
+// be returned. If the error is nil, nil will be returned without further
+// investigation.
+func Cause(err error) error {
+	for err != nil {
+		cause, ok := err.(causer)
+		if !ok {
+			break
 		}
-		e.Fields[key] = value
+		err = cause.Cause()
 	}
+	return err
 }
 
-// WithFields adds multiple fields to the error
-func WithFields(fields map[string]interface{}) func(*OpError) {
-	return func(e *OpError) {
-		if e.Fields == nil {
-			e.Fields = make(map[string]interface{})
+// Print prints the error to Stderr.
+// If the error implements the Causer interface described in Cause
+// Print will recurse into the error's cause.
+// If the error implements the interface:
+//
+//	type Location interface {
+//	       Location() (file string, line int)
+//	}
+//
+// Print will also print the file and line of the error.
+func Print(err error) {
+	Fprint(os.Stderr, err)
+}
+
+// Fprint prints the error to the supplied writer.
+// The format of the output is the same as Print.
+// If err is nil, nothing is printed.
+func Fprint(w io.Writer, err error) {
+	type location interface {
+		Location() (string, int)
+	}
+	type message interface {
+		Message() string
+	}
+
+	for err != nil {
+		if err, ok := err.(location); ok {
+			file, line := err.Location()
+			fmt.Fprintf(w, "%s:%d: ", file, line)
 		}
-		for k, v := range fields {
-			e.Fields[k] = v
+		switch err := err.(type) {
+		case message:
+			fmt.Fprintln(w, err.Message())
+		default:
+			fmt.Fprintln(w, err.Error())
 		}
+
+		cause, ok := err.(causer)
+		if !ok {
+			break
+		}
+		err = cause.Cause()
 	}
-}
-
-// GetOpError extracts an OpError from the error chain
-func GetOpError(err error) (*OpError, bool) {
-	var opErr *OpError
-	if errors.As(err, &opErr) {
-		return opErr, true
-	}
-	return nil, false
-}
-
-// GetStackTrace extracts stack trace from the error chain if available
-func GetStackTrace(err error) string {
-	var stackTracer StackTracer
-	if errors.As(err, &stackTracer) {
-		return stackTracer.StackTrace()
-	}
-	return ""
-}
-
-// Is checks if the target error is in the error chain
-func Is(err, target error) bool {
-	return errors.Is(err, target)
-}
-
-// As finds the first error in err's chain that matches target
-func As(err error, target interface{}) bool {
-	return errors.As(err, target)
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	// "os"
-	// "runtime/pprof"
+	"os"
+	"runtime/pprof"
 
 	_ "net/http/pprof"
 )
@@ -24,14 +24,14 @@ func main() {
 		http.ListenAndServe(":6060", nil)
 	}()
 
-	// f, err := os.Create("cpu.prof")
-	// if err != nil {
-	// 	fmt.Println("could not create CPU profile:", err)
-	// 	return
-	// }
-	// defer f.Close()
-	// pprof.StartCPUProfile(f)
-	// defer pprof.StopCPUProfile()
+	f, err := os.Create("cpu.prof")
+	if err != nil {
+		fmt.Println("could not create CPU profile:", err)
+		return
+	}
+	defer f.Close()
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
 
 	// Run a CPU-intensive task
 	fmt.Println("Calculating fib(35)...")
@@ -40,5 +40,5 @@ func main() {
 
 	// Prevent main from exiting so the pprof server stays up
 	fmt.Println("Press Ctrl+C to exit and stop the pprof server.")
-	select {} // Block forever
+	// select {} // Block forever
 }
