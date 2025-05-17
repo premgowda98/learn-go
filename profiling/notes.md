@@ -1,5 +1,7 @@
 # Go Profiling: Complete Guide
 
+[Video](https://youtu.be/R_C2KqmlqY8)
+
 Profiling is the process of measuring the performance of your Go programs to identify bottlenecks, excessive memory usage, or inefficient code paths. Go provides built-in tools for CPU, memory, and other types of profiling.
 
 ## Why Profile?
