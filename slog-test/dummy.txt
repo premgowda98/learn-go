@@ -1,0 +1,343 @@
+package logger
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
+	"time"
+
+	"gopkg.in/natefinch/lumberjack.v2"
+)
+
+var (
+	instance    *slog.Logger
+	LOGGER      *slog.Logger
+	once        sync.Once
+	levelVar    = new(slog.LevelVar)
+	runtimeRoot string
+)
+
+const (
+	LevelDebug = slog.LevelDebug
+	LevelInfo  = slog.LevelInfo
+	LevelWarn  = slog.LevelWarn
+	LevelError = slog.LevelError
+)
+
+const (
+	DefaultLogDir     = "logs"
+	DefaultMaxSize    = 100
+	DefaultMaxBackups = 3
+	DefaultMaxAge     = 28
+	DefaultCompress   = true
+	DefaultLevel      = LevelDebug
+)
+
+func init() {
+	runtimeRoot, _ = os.Getwd()
+}
+
+type Config struct {
+	LogDir     string
+	MaxSize    int
+	MaxBackups int
+	MaxAge     int
+	Compress   bool
+	Level      slog.Level
+}
+
+func New(packageName string) *Logger {
+	var logger *slog.Logger
+
+	//singleton
+	once.Do(func() {
+
+		cfg := Config{
+			LogDir:     DefaultLogDir,
+			MaxSize:    DefaultMaxSize,
+			MaxBackups: DefaultMaxBackups,
+			MaxAge:     DefaultMaxAge,
+			Compress:   DefaultCompress,
+			Level:      DefaultLevel,
+		}
+
+		err := os.MkdirAll(cfg.LogDir, 0755)
+		if err != nil {
+			panic(err)
+		}
+
+		logFiles := []string{
+			filepath.Join(cfg.LogDir, "clientagent.debug.log"),
+			filepath.Join(cfg.LogDir, "clientagent.info.log"),
+			filepath.Join(cfg.LogDir, "clientagent.warn.log"),
+			filepath.Join(cfg.LogDir, "clientagent.error.log"),
+		}
+
+		for _, logFile := range logFiles {
+			if _, err := os.Stat(logFile); os.IsNotExist(err) {
+				file, err := os.Create(logFile)
+				if err != nil {
+					panic(err)
+				}
+				file.Close()
+			}
+
+			err := os.Chmod(logFile, 0644)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		debugLogger := &lumberjack.Logger{
+			Filename:   logFiles[0],
+			MaxSize:    cfg.MaxSize,
+			MaxBackups: cfg.MaxBackups,
+			MaxAge:     cfg.MaxAge,
+			Compress:   cfg.Compress,
+		}
+
+		infoLogger := &lumberjack.Logger{
+			Filename:   logFiles[1],
+			MaxSize:    cfg.MaxSize,
+			MaxBackups: cfg.MaxBackups,
+			MaxAge:     cfg.MaxAge,
+			Compress:   cfg.Compress,
+		}
+
+		warnLogger := &lumberjack.Logger{
+			Filename:   logFiles[2],
+			MaxSize:    cfg.MaxSize,
+			MaxBackups: cfg.MaxBackups,
+			MaxAge:     cfg.MaxAge,
+			Compress:   cfg.Compress,
+		}
+
+		errorLogger := &lumberjack.Logger{
+			Filename:   logFiles[3],
+			MaxSize:    cfg.MaxSize,
+			MaxBackups: cfg.MaxBackups,
+			MaxAge:     cfg.MaxAge,
+			Compress:   cfg.Compress,
+		}
+
+		opts := &slog.HandlerOptions{
+			Level:     levelVar,
+			AddSource: true,
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == slog.TimeKey {
+					a.Value = slog.StringValue(time.Now().Format(time.RFC3339))
+				}
+				return a
+			},
+		}
+
+		levelVar.Set(cfg.Level)
+
+		handler := slog.NewJSONHandler(os.Stdout, opts)
+		logger = slog.New(&leveledHandler{
+			defaultHandler: handler,
+			errorWriter:    errorLogger,
+			warnWriter:     warnLogger,
+			infoWriter:     infoLogger,
+			debugWriter:    debugLogger,
+			opts:           opts,
+		})
+
+		instance = logger
+		slog.SetDefault(instance)
+	})
+
+	return &Logger{instance}
+}
+
+type Logger struct {
+	*slog.Logger
+}
+
+func (l *Logger) SetLevel(level slog.Level) {
+	levelVar.Set(level)
+}
+
+func (l *Logger) EnableConsoleLogging() {
+	if handler, ok := l.Handler().(*leveledHandler); ok {
+		handler.consoleLoggingEnabled = true
+	}
+}
+
+func (l *Logger) Info(msg string, args ...any) {
+	l.Logger.Info(msg, args...)
+}
+
+func (l *Logger) InfoF(format string, args ...any) {
+	l.Logger.Info(fmt.Sprintf(format, args...))
+}
+
+func (l *Logger) Debug(msg string, args ...any) {
+	l.Logger.Debug(msg, args...)
+}
+
+func (l *Logger) DebugF(format string, args ...any) {
+	l.Logger.Debug(fmt.Sprintf(format, args...))
+}
+
+func (l *Logger) Warn(msg string, args ...any) {
+	l.Logger.Warn(msg, args...)
+}
+
+func (l *Logger) WarnF(format string, args ...any) {
+	l.Logger.Warn(fmt.Sprintf(format, args...))
+}
+
+func (l *Logger) Error(msg string, args ...any) {
+	l.Logger.Error(msg, args...)
+}
+
+func (l *Logger) ErrorF(format string, args ...any) {
+	l.Logger.Error(fmt.Sprintf(format, args...))
+}
+
+type CustomHandler struct {
+	slog.Handler
+	w    io.Writer
+	opts slog.HandlerOptions
+}
+
+func NewCustomHandler(w io.Writer, opts *slog.HandlerOptions) *CustomHandler {
+	return &CustomHandler{
+		Handler: slog.NewTextHandler(w, opts),
+		w:       w,
+		opts:    *opts,
+	}
+}
+
+func getCaller(skip int) *slog.Source {
+	_, file, line, ok := runtime.Caller(skip)
+	if !ok {
+		return nil
+	}
+
+	if runtimeRoot != "" && strings.HasPrefix(file, runtimeRoot) {
+		file = strings.TrimPrefix(file, runtimeRoot)
+		if strings.HasPrefix(file, "/") {
+			file = file[1:]
+		}
+	}
+
+	return &slog.Source{
+		File: file,
+		Line: line,
+	}
+}
+
+func (h *CustomHandler) Handle(ctx context.Context, r slog.Record) error {
+	level := strings.ToUpper(r.Level.String())
+	timeStr := r.Time.Format("2006-01-02 15:04:05.000")
+
+	var otherOpts = ""
+	r.Attrs(func(a slog.Attr) bool {
+		if a.Key != "!BADKEY" {
+			otherOpts += a.Key
+			otherOpts += " "
+		}
+		otherOpts += a.Value.String()
+		otherOpts += " "
+		return true
+	})
+
+	source := getCaller(6)
+
+	output := fmt.Sprintf("%s%s %s %s %s\n",
+		level[:1],
+		timeStr,
+		fmt.Sprintf("%s:%d", source.File, source.Line),
+		r.Message,
+		otherOpts,
+	)
+
+	_, err := h.w.Write([]byte(output))
+	return err
+}
+
+type leveledHandler struct {
+	defaultHandler        slog.Handler
+	errorWriter           io.Writer
+	warnWriter            io.Writer
+	infoWriter            io.Writer
+	debugWriter           io.Writer
+	opts                  *slog.HandlerOptions
+	consoleLoggingEnabled bool
+}
+
+func (h *leveledHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.defaultHandler.Enabled(ctx, level)
+}
+
+func (h *leveledHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &leveledHandler{
+		defaultHandler: h.defaultHandler.WithAttrs(attrs),
+		errorWriter:    h.errorWriter,
+		warnWriter:     h.warnWriter,
+		infoWriter:     h.infoWriter,
+		debugWriter:    h.debugWriter,
+		opts:           h.opts,
+	}
+}
+
+func (h *leveledHandler) WithGroup(name string) slog.Handler {
+	return &leveledHandler{
+		defaultHandler: h.defaultHandler.WithGroup(name),
+		errorWriter:    h.errorWriter,
+		warnWriter:     h.warnWriter,
+		infoWriter:     h.infoWriter,
+		debugWriter:    h.debugWriter,
+		opts:           h.opts,
+	}
+}
+
+func (h *leveledHandler) Handle(ctx context.Context, r slog.Record) error {
+
+	var errs []error
+
+	if h.consoleLoggingEnabled {
+		if err := NewCustomHandler(os.Stdout, h.opts).Handle(ctx, r); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if r.Level < LevelInfo {
+		if err := NewCustomHandler(h.debugWriter, h.opts).Handle(ctx, r); err != nil {
+			errs = append(errs, err)
+		}
+	} else if r.Level >= LevelError {
+		if err := NewCustomHandler(h.errorWriter, h.opts).Handle(ctx, r); err != nil {
+			errs = append(errs, err)
+		}
+		if err := NewCustomHandler(h.infoWriter, h.opts).Handle(ctx, r); err != nil {
+			errs = append(errs, err)
+		}
+	} else if r.Level >= LevelWarn {
+		if err := NewCustomHandler(h.warnWriter, h.opts).Handle(ctx, r); err != nil {
+			errs = append(errs, err)
+		}
+		if err := NewCustomHandler(h.infoWriter, h.opts).Handle(ctx, r); err != nil {
+			errs = append(errs, err)
+		}
+	} else {
+		if err := NewCustomHandler(h.infoWriter, h.opts).Handle(ctx, r); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	// Return first error or nil
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+	return nil
+}
