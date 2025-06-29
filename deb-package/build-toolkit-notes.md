@@ -18,12 +18,14 @@
 
 ### 📁 See what’s inside
 
-| Tool          | Purpose                                                           | Example                                   |
-| ------------- | ----------------------------------------------------------------- | ----------------------------------------- |
-| `dpkg-deb -c` | List contents of a `.deb` file                                    | `dpkg-deb -c clientagent_2.0.0_amd64.deb` |
-| `dpkg -x`     | Extract the contents to a directory                               | `dpkg -x clientagent.deb /tmp/pkg`        |
-| `ar`          | `.deb` is an ar archive – list internal files                     | `ar t clientagent.deb`                    |
-| `ar x`        | Extract `.deb`'s `control.tar.gz`, `data.tar.xz`, `debian-binary` | `ar x clientagent.deb`                    |
+| Tool          | Purpose                                                           | Example                                          |
+| ------------- | ----------------------------------------------------------------- | ------------------------------------------------ |
+| `dpkg-deb -c` | List contents of a `.deb` file                                    | `dpkg-deb -c clientagent_2.0.0_amd64.deb`        |
+| `dpkg-deb -R` | Extracts `.deb` file                                              | `dpkg-deb -R clientagent_2.0.0_amd64.deb ./dest` |
+| `dpkg-deb -b` | Build package again from extracted dir                            | `dpkg-deb -b ./dest clientagent_2.0.0_amd64.deb` |
+| `dpkg -x`     | Extract the contents to a directory                               | `dpkg -x clientagent.deb /tmp/pkg`               |
+| `ar`          | `.deb` is an ar archive – list internal files                     | `ar t clientagent.deb`                           |
+| `ar x`        | Extract `.deb`'s `control.tar.gz`, `data.tar.xz`, `debian-binary` | `ar x clientagent.deb`                           |
 
 ---
 
