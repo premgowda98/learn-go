@@ -40,7 +40,7 @@ sequenceDiagram
     Server->>Client: 9. Finished
     
     Note over Client,Server: Secure communication established
-    Client<->>Server: Encrypted application data
+    Client<<-->>Server: Encrypted application data
 ```
 
 ### 🔑 Regular TLS Authentication:
@@ -130,7 +130,7 @@ sequenceDiagram
     S->>C: 3. Certificate
     Note left of S: • Server's public key<br/>• Certificate chain<br/>• Digital signature
     
-    S->>C: 4. ServerHelloDone
+    S-->C: 4. ServerHelloDone
     Note left of S: Server finished sending
     
     Note over C,S: Phase 3: Client Key Exchange
@@ -147,7 +147,7 @@ sequenceDiagram
     Note left of S: Encrypted with session key
     
     Note over C,S: 🔒 Secure Channel Established
-    C<->>S: Application Data (Encrypted)
+    C->>S: Application Data (Encrypted)
 ```
 
 ### 🔑 Key Points:
@@ -202,7 +202,7 @@ sequenceDiagram
     S->>C: 12. Finished
     
     Note over C,S: 🔒 Mutually Authenticated Secure Channel
-    C<->>S: Application Data (Encrypted)
+    C<<->>S: Application Data (Encrypted)
 ```
 
 ### 🔑 Key Differences from Regular TLS:
@@ -454,21 +454,18 @@ sequenceDiagram
     participant C as Client
     participant A as Attacker Proxy
     participant S as Real Server
-    
-    Note over C,A,S: Attacker intercepts connection
-    
-    C->>A: HTTPS Request
-    A->>S: Forward Request
-    S->>A: Real Server Certificate
-    A->>C: Fake Certificate (signed by attacker's CA)
-    
+
+    Note over C,A: Attacker intercepts connection
+    C->>A: 1. HTTPS Request
+    A->>S: 2. Forward Request
+    S-->>A: 3. Real Server Certificate
+    A-->>C: 4. Fake Certificate<br/>(signed by attacker's CA)
+
     Note over C: If attacker's CA is trusted,<br/>connection appears secure
-    
-    C->>A: Encrypted with fake cert
-    Note over A: Attacker can decrypt/modify
-    A->>S: Re-encrypted to real server
-    
-    style A fill:#ffcccc
+
+    C->>A: 5. Encrypted request (with fake cert)
+    Note over A: Attacker can decrypt/inspect/modify traffic
+    A->>S: 6. Re-encrypted request to real server
 ```
 
 #### Scenario 2: With Certificate Pinning
@@ -490,9 +487,6 @@ sequenceDiagram
     Note over C: ❌ Hash mismatch!<br/>Connection rejected
     
     C-->>A: Connection Terminated
-    
-    style C fill:#ccffcc
-    style A fill:#ffcccc
 ```
 
 ### 🔒 mTLS Security Benefits

@@ -18,7 +18,7 @@ const (
 	serverAddress = "localhost:8443"
 	// This will be the expected server certificate's public key hash
 	// Generated from: openssl x509 -in certs/server.crt -pubkey -noout | openssl pkey -pubin -outform DER | openssl dgst -sha256 -hex
-	expectedServerPubKeyHash = "61b3d84923a7a6326cabab402810fa3a4cd0e657d4bb67dcad4470a16575a255"
+	expectedServerPubKeyHash = "ccce7dfa888af9f9fdb088476fe5c9c96d14d49ab1d5276f4f17977f0914aeef"
 )
 
 func main() {
@@ -114,7 +114,7 @@ func verifyServerCertificateWithPinning(rawCerts [][]byte, verifiedChains [][]*x
 
 func testGetRequest(client *http.Client) {
 	fmt.Println("\n📥 Testing GET request...")
-	
+
 	resp, err := client.Get(fmt.Sprintf("https://%s/hello", serverAddress))
 	if err != nil {
 		log.Printf("❌ GET request failed: %v", err)
@@ -134,17 +134,17 @@ func testGetRequest(client *http.Client) {
 
 func testPostRequest(client *http.Client) {
 	fmt.Println("\n📤 Testing POST request...")
-	
+
 	postData := `{"message": "Hello from mTLS client!", "timestamp": "` + time.Now().Format(time.RFC3339) + `"}`
-	
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/echo", serverAddress), 
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/echo", serverAddress),
 		strings.NewReader(postData))
 	if err != nil {
 		log.Printf("❌ Failed to create POST request: %v", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("❌ POST request failed: %v", err)

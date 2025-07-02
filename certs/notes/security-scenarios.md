@@ -62,30 +62,25 @@ sequenceDiagram
     Note over Client: ❌ Hash mismatch detected!<br/>🛡️ Pinning prevents MITM
     
     Client-->>Attacker: Connection Rejected
-    
-    style Client fill:#ccffcc
-    style Attacker fill:#ffcccc
 ```
 
 ### 2. 🎭 Rogue Certificate Authority (CA)
 
 **Scenario:** An attacker compromises a Certificate Authority or uses a rogue CA that's been added to the system trust store.
 
-```mermaid graph TD
-    A[🏛️ Trusted Root CA] --> B[🏢 Legitimate Intermediate CA]
-    A --> C[😈 Rogue Intermediate CA]
+```mermaid 
+    graph TD
+    A[Trusted Root CA 🏛️] --> B[Legitimate Intermediate CA 🏢]
+    A --> C[Rogue Intermediate CA 😈]
     
-    B --> D[✅ Real Server Certificate]
-    C --> E[🚨 Fake Server Certificate<br/>Same Domain]
+    B --> D[Real Server Certificate ✅]
+    C --> E[Fake Server Certificate 🚨\nSame Domain]
     
     F[Client] --> G{Certificate Validation}
     G --> H{Is CA Trusted?}
-    H -->|Yes| I[✅ Accept Certificate]
-    H -->|No| J[❌ Reject Certificate]
-    
-    style C fill:#ffcccc
-    style E fill:#ffcccc
-    style I fill:#ffffcc
+    H -->|Yes| I[Accept Certificate ✅]
+    H -->|No| J[Reject Certificate ❌]
+
 ```
 
 **Impact:**
