@@ -128,6 +128,91 @@ C (Commit)
 
 ---
 
+## Replica Identity and old_data
+
+PostgreSQL controls how much of the old row is included in UPDATE and DELETE messages via a per-table setting called **REPLICA IDENTITY**.
+
+| Mode | What's in `old_data` on UPDATE / DELETE |
+|------|------------------------------------------|
+| `DEFAULT` (default) | Primary key columns only — all other columns are null |
+| `FULL` | Every column with its previous value |
+| `NOTHING` | Nothing — `old_data` is nil |
+| `USING INDEX` | Columns covered by a specific unique index |
+
+### INSERT vs UPDATE vs DELETE
+
+| Operation | `data` (new row) | `old_data` (previous row) |
+|-----------|-----------------|--------------------------|
+| INSERT | Full row, always | Not applicable |
+| UPDATE | Full new row, always | Depends on REPLICA IDENTITY |
+| DELETE | Not applicable | Depends on REPLICA IDENTITY |
+
+This means:
+- With `DEFAULT`: UPDATE gives you the full new row but only the primary key in `old_data`. You can't see what the previous values of non-key columns were.
+- With `FULL`: UPDATE gives you both the complete before and after state — the standard behaviour expected from CDC tools like Debezium.
+
+### Checking current replica identity
+
+```sql
+SELECT
+    relname AS table_name,
+    CASE relreplident
+        WHEN 'd' THEN 'DEFAULT (primary key only)'
+        WHEN 'f' THEN 'FULL (all columns)'
+        WHEN 'n' THEN 'NOTHING'
+        WHEN 'i' THEN 'USING INDEX'
+    END AS replica_identity
+FROM pg_class
+WHERE relname IN ('users', 'orders', 'products')
+  AND relkind = 'r';
+```
+
+### Enabling full old-row capture
+
+To get the complete previous row in UPDATE and DELETE events, run:
+
+```sql
+ALTER TABLE users    REPLICA IDENTITY FULL;
+ALTER TABLE orders   REPLICA IDENTITY FULL;
+ALTER TABLE products REPLICA IDENTITY FULL;
+```
+
+After this, `old_data` in UPDATE events will contain every column's value before the change.
+
+### Seeing exactly what changed — `changed_fields`
+
+On UPDATE events, the app computes a field-level diff between `old_data` and `data` and includes it as `changed_fields`. Each entry shows the before and after value for only the columns that actually changed:
+
+```json
+{
+  "operation": "UPDATE",
+  "table": "users",
+  "schema": "public",
+  "data": {
+    "id": "1",
+    "name": "Alice Updated",
+    "email": "alice@example.com",
+    "age": "31"
+  },
+  "old_data": {
+    "id": "1",
+    "name": "Alice",
+    "email": "alice@example.com",
+    "age": "30"
+  },
+  "changed_fields": {
+    "name": { "from": "Alice", "to": "Alice Updated" },
+    "age":  { "from": "30",   "to": "31" }
+  },
+  "lsn": "0/1C4B2A0",
+  "xid": 751
+}
+```
+
+`changed_fields` is only populated when `REPLICA IDENTITY FULL` is set — without it, `old_data` only has the primary key, so a meaningful diff isn't possible.
+
+---
+
 ## Implementation
 
 ### Key packages
@@ -213,18 +298,27 @@ Every INSERT, UPDATE, or DELETE produces a `ChangeEvent`:
 
 ```go
 type ChangeEvent struct {
-    Operation string                 `json:"operation"` // INSERT | UPDATE | DELETE
-    Table     string                 `json:"table"`
-    Schema    string                 `json:"schema"`
-    Data      map[string]interface{} `json:"data"`      // new row (or deleted row for DELETE)
-    OldData   map[string]interface{} `json:"old_data,omitempty"` // previous row for UPDATE
-    Timestamp time.Time              `json:"timestamp"`
-    LSN       string                 `json:"lsn"`
-    XID       uint32                 `json:"xid"`
+    Operation     string                 `json:"operation"`                // INSERT | UPDATE | DELETE
+    Table         string                 `json:"table"`
+    Schema        string                 `json:"schema"`
+    Data          map[string]interface{} `json:"data"`                     // new row values
+    OldData       map[string]interface{} `json:"old_data,omitempty"`       // previous row (requires REPLICA IDENTITY FULL)
+    ChangedFields map[string]FieldDiff   `json:"changed_fields,omitempty"` // diff, UPDATE only
+    Timestamp     time.Time              `json:"timestamp"`
+    LSN           string                 `json:"lsn"`
+    XID           uint32                 `json:"xid"`
+}
+
+// FieldDiff is one entry in ChangedFields — the before and after value of a column
+type FieldDiff struct {
+    From interface{} `json:"from"`
+    To   interface{} `json:"to"`
 }
 ```
 
 Column values come as text strings (PostgreSQL's text representation). Parse them as needed downstream.
+
+`ChangedFields` is computed automatically on UPDATE by diffing `OldData` against `Data`. It is nil when `REPLICA IDENTITY FULL` is not set (because `OldData` won't have the full previous row to compare against).
 
 ---
 

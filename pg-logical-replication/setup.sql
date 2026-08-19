@@ -72,6 +72,33 @@ WHERE slot_name = 'my_replication_slot';
 
 
 -- ============================================================
+-- Replica Identity
+-- Controls how much of the old row is sent in UPDATE/DELETE messages.
+--
+-- DEFAULT (built-in default): only primary key columns in old_data
+-- FULL: all columns in old_data — needed for full before/after state in CDC
+-- NOTHING: old_data is nil
+--
+-- Check the current setting for your tables:
+SELECT
+    relname AS table_name,
+    CASE relreplident
+        WHEN 'd' THEN 'DEFAULT (primary key only)'
+        WHEN 'f' THEN 'FULL (all columns)'
+        WHEN 'n' THEN 'NOTHING'
+        WHEN 'i' THEN 'USING INDEX'
+    END AS replica_identity
+FROM pg_class
+WHERE relname IN ('users', 'orders', 'products')
+  AND relkind = 'r';
+
+-- To capture full before-state on UPDATE and DELETE, run:
+ALTER TABLE users    REPLICA IDENTITY FULL;
+ALTER TABLE orders   REPLICA IDENTITY FULL;
+ALTER TABLE products REPLICA IDENTITY FULL;
+
+
+-- ============================================================
 -- Optional: Sample data
 -- Note: inserts made before the CDC app connects will NOT appear
 -- in the replication stream. Use these to seed initial state only.

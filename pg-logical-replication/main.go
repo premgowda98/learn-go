@@ -19,14 +19,21 @@ import (
 
 // ChangeEvent represents a single database change
 type ChangeEvent struct {
-	Operation string                 `json:"operation"` // INSERT, UPDATE, DELETE
-	Table     string                 `json:"table"`
-	Schema    string                 `json:"schema"`
-	Data      map[string]interface{} `json:"data"`
-	OldData   map[string]interface{} `json:"old_data"` // For UPDATE/DELETE
-	Timestamp time.Time              `json:"timestamp"`
-	LSN       string                 `json:"lsn"`
-	XID       uint32                 `json:"xid"`
+	Operation     string                 `json:"operation"`               // INSERT, UPDATE, DELETE
+	Table         string                 `json:"table"`
+	Schema        string                 `json:"schema"`
+	Data          map[string]interface{} `json:"data"`                    // new row values
+	OldData       map[string]interface{} `json:"old_data,omitempty"`      // previous row values (requires REPLICA IDENTITY FULL)
+	ChangedFields map[string]FieldDiff   `json:"changed_fields,omitempty"` // only populated on UPDATE
+	Timestamp     time.Time              `json:"timestamp"`
+	LSN           string                 `json:"lsn"`
+	XID           uint32                 `json:"xid"`
+}
+
+// FieldDiff holds the before and after value of a single changed column
+type FieldDiff struct {
+	From interface{} `json:"from"`
+	To   interface{} `json:"to"`
 }
 
 func main() {
@@ -271,23 +278,17 @@ func handleMessage(msg pglogrepl.Message, relations map[uint32]*pglogrepl.Relati
 		if err != nil {
 			return nil, err
 		}
-		event := &ChangeEvent{
-			Operation: "UPDATE",
-			Schema:    rel.Namespace,
-			Table:     rel.RelationName,
-			Data:      newData,
-			OldData:   oldData,
-			Timestamp: time.Now(),
-			LSN:       lsn.String(),
-			XID:       *currentXID,
-		}
-		if m.OldTuple != nil {
-			oldData, err := tupleToMap(m.OldTuple, rel)
-			if err == nil {
-				event.OldData = oldData
-			}
-		}
-		return event, nil
+		return &ChangeEvent{
+			Operation:     "UPDATE",
+			Schema:        rel.Namespace,
+			Table:         rel.RelationName,
+			Data:          newData,
+			OldData:       oldData,
+			ChangedFields: diffTuples(oldData, newData),
+			Timestamp:     time.Now(),
+			LSN:           lsn.String(),
+			XID:           *currentXID,
+		}, nil
 
 	case *pglogrepl.DeleteMessage:
 		rel, ok := relations[m.RelationID]
@@ -322,6 +323,29 @@ func handleMessage(msg pglogrepl.Message, relations map[uint32]*pglogrepl.Relati
 		log.Printf("  → Unknown message type: %T", msg)
 		return nil, nil
 	}
+}
+
+// diffTuples compares old and new row maps and returns only the fields that changed.
+// Requires REPLICA IDENTITY FULL on the table; otherwise old will only contain key columns.
+func diffTuples(old, new map[string]interface{}) map[string]FieldDiff {
+	if old == nil || new == nil {
+		return nil
+	}
+	diff := make(map[string]FieldDiff)
+	for col, newVal := range new {
+		oldVal, exists := old[col]
+		if !exists {
+			continue
+		}
+		// Compare as strings (pgoutput delivers text representations)
+		if fmt.Sprintf("%v", oldVal) != fmt.Sprintf("%v", newVal) {
+			diff[col] = FieldDiff{From: oldVal, To: newVal}
+		}
+	}
+	if len(diff) == 0 {
+		return nil
+	}
+	return diff
 }
 
 // tupleToMap converts a pglogrepl TupleData into a column name → value map
